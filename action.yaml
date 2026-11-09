@@ -1,0 +1,35 @@
+name: Upload Actions Logs to Sazabi
+description: Send GitHub Actions job logs and run, job and step summaries to Sazabi as OpenTelemetry log records.
+author: Sazabi
+branding:
+  icon: upload-cloud
+  color: gray-dark
+
+inputs:
+  url:
+    description: The keyed intake URL of your Sazabi GitHub Actions log source. Store it as a secret (SAZABI_LOGS_URL); it is a credential.
+    required: true
+  logs:
+    description: Send one record per job log line. Set to false to send only the run, job and step summaries.
+    required: false
+    default: "true"
+  max-bytes-per-job:
+    description: The most log text sent per job, in bytes. Over the cap, the first tenth and the last nine tenths of it are sent, plus one record saying how much was left out.
+    required: false
+    default: "10485760"
+  service-name:
+    description: The service.name of every record. Defaults to the repository name.
+    required: false
+    default: ""
+  fail-on-error:
+    description: Fail this job when the upload or a job log download fails. By default either is a warning and the job succeeds.
+    required: false
+    default: "false"
+  github-token:
+    description: Token used to read the run's jobs and job logs. Needs actions read access.
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: node24
+  main: dist/index.js
