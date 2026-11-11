@@ -228,16 +228,18 @@ var headerNamesStep = (text, name) => {
   return stepName.startsWith("Run ") && header.startsWith(stepName);
 };
 var secondOf = (unixNano) => unixNano / NANOS_PER_SECOND;
+var UNBOUNDED_SECOND = 2n ** 63n;
 
 class StepAttributor {
   #steps;
   #current = 0;
   #nestedActions = 0;
-  constructor(steps) {
+  constructor(steps, jobCompletedAt) {
+    const unfinishedEnd = jobCompletedAt === null ? UNBOUNDED_SECOND : secondOf(isoToUnixNano(jobCompletedAt));
     this.#steps = (steps ?? []).filter((step) => step.started_at !== null && step.conclusion !== "skipped").map((step) => ({
       step,
       startSecond: secondOf(isoToUnixNano(step.started_at)),
-      endSecond: secondOf(isoToUnixNano(step.completed_at ?? step.started_at))
+      endSecond: step.completed_at === null ? unfinishedEnd : secondOf(isoToUnixNano(step.completed_at))
     })).sort((a, b) => a.step.number - b.step.number);
   }
   skipGap() {
@@ -287,7 +289,7 @@ var splitLines = (chunk) => {
 };
 function* jobLogRecords(input) {
   const { run, job, capped } = input;
-  const attributor = new StepAttributor(job.steps);
+  const attributor = new StepAttributor(job.steps, job.completed_at);
   const baseAttributes = jobAttributes(job);
   const key = jobKey(run, job);
   let lastTime = isoToUnixNano(job.started_at ?? run.updated_at);
